@@ -1,0 +1,12 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+signos/state/intent_bus.jsonl
+training/datasets/*
+!training/datasets/.gitkeep
+state/*.jsonl
+state/*.offset
+training/video/
+results/*.csv
+results/bench_bus.jsonl

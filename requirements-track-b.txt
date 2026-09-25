@@ -1,0 +1,6 @@
+pywin32>=306
+psutil>=5.9
+pytest>=8.0
+pyyaml>=6.0
+pyautogui>=0.9.54
+pywinauto>=0.6.8

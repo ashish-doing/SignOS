@@ -1,0 +1,13 @@
+{
+  "_note": "A sign is recordable/trainable only if confirmed=true AND source is filled AND logged in docs/ATTRIBUTIONS.md. Never invent a hand shape and call it ISL. If a word has no authentic sign, replace the command instead.",
+  "signs": [
+    {"name": "COPY",   "confirmed": false, "source": null},
+    {"name": "PASTE",  "confirmed": false, "source": null},
+    {"name": "UNDO",   "confirmed": false, "source": null},
+    {"name": "SELECT", "confirmed": false, "source": null},
+    {"name": "SAVE",   "confirmed": false, "source": null},
+    {"name": "CANCEL", "confirmed": false, "source": null},
+    {"name": "NEXT",   "confirmed": false, "source": null},
+    {"name": "BACK",   "confirmed": false, "source": null}
+  ]
+}

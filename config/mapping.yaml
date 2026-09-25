@@ -1,0 +1,55 @@
+# SignOS Track B — gesture-to-action mapping table (Track B prompt, section 5)
+#
+# Format: intent -> mode -> action name, or null = no mapping in that mode
+# (ignored, not an error). Action names are resolved against
+# context_action.actions.ACTIONS.
+#
+# This is the core differentiator: the same intent maps to a different
+# real action depending on the resolved mode. Auditable, extensible,
+# no code change needed to retarget a mapping.
+#
+# KNOWN LIMITATION (flag to Track A / main chat): the intent bus schema
+# (Track B prompt, section 2) has no direction field for SCROLL_V/SCROLL_H
+# — just the bare intent name. Until Track A's schema (or a follow-up
+# field) carries direction/velocity, SCROLL_V is treated as "scroll down"
+# everywhere below. This is a placeholder, not a design decision — revisit
+# once real scroll data exists.
+
+SWIPE_RIGHT:
+  DESKTOP: next_virtual_desktop
+  BROWSER: browser_forward
+  PRESENTATION: next_slide
+  MEDIA: next_track
+  TEXT: null
+
+SWIPE_LEFT:
+  DESKTOP: prev_virtual_desktop
+  BROWSER: browser_back
+  PRESENTATION: prev_slide
+  MEDIA: prev_track
+  TEXT: null
+
+PINCH:
+  DESKTOP: click
+  BROWSER: click
+  PRESENTATION: advance_slide_click
+  MEDIA: play_pause
+  TEXT: null
+
+SCROLL_V:
+  DESKTOP: scroll_down
+  BROWSER: scroll_down
+  PRESENTATION: null
+  MEDIA: volume_down
+  TEXT: null
+
+# R3 demo mapping (Batch 3 acceptance check — see action_broker.py
+# RISK_LEVELS). DOUBLE_PINCH is otherwise unmapped, so it's repurposed
+# here specifically to demonstrate the R3 confirmation gate; this is not
+# a claimed real-world UX pairing of "double pinch = close window".
+DOUBLE_PINCH:
+  DESKTOP: close_active_window
+  BROWSER: null
+  PRESENTATION: null
+  MEDIA: null
+  TEXT: null
