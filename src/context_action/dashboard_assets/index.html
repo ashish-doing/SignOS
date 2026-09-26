@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>SIGNOS — Mission Control</title>
+<style>
+  :root {
+    --bg: #0B1020; --surface: #111827; --surface-el: #182235;
+    --cyan: #16D9E7; --blue: #1F6FEB; --lime: #A7F36B;
+    --amber: #F0B35B; --red: #D64545;
+    --text: #F5F7FA; --text-dim: #97A3B6; --border: #28344A;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: "Segoe UI", Aptos, system-ui, sans-serif;
+    padding: 24px; min-height: 100vh;
+  }
+  header {
+    display: flex; justify-content: space-between; align-items: center;
+    border-bottom: 1px solid var(--border); padding-bottom: 16px; margin-bottom: 20px;
+  }
+  h1 { font-size: 20px; margin: 0; letter-spacing: 2px; color: var(--cyan); }
+  h1 span { color: var(--text-dim); font-weight: 400; font-size: 13px; letter-spacing: 1px; }
+  .status-pill { display: flex; gap: 10px; font-family: Consolas, monospace; font-size: 12px; }
+  .pill { background: var(--surface-el); border: 1px solid var(--border);
+    border-radius: 12px; padding: 4px 12px; color: var(--lime); }
+  .grid3 { display: grid; grid-template-columns: 1.3fr 1fr 1fr; gap: 16px; }
+  .card { background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 18px; }
+  .card h2 { font-size: 12px; text-transform: uppercase; letter-spacing: 1.5px;
+    color: var(--text-dim); margin: 0 0 14px 0; font-weight: 600; }
+  #cam-feed { width: 100%; border-radius: 8px; display: block; background: #000; min-height: 160px; }
+  .cam-offline { color: var(--text-dim); font-size: 12px; font-family: Consolas, monospace; padding: 12px 0; }
+  .mode-badge { font-size: 26px; font-weight: 700; color: var(--blue); font-family: Consolas, monospace; }
+  .ctx-row { display: flex; justify-content: space-between; padding: 6px 0;
+    border-bottom: 1px solid var(--border); font-size: 12px; }
+  .ctx-row:last-child { border-bottom: none; }
+  .ctx-row .k { color: var(--text-dim); }
+  .ctx-row .v { color: var(--text); font-family: Consolas, monospace; text-align: right; }
+  .last-intent { font-size: 20px; font-family: Consolas, monospace; color: var(--cyan); margin-bottom: 4px; }
+  .confidence-bar { height: 6px; background: var(--surface-el); border-radius: 3px; overflow: hidden; margin-top: 10px; }
+  .confidence-fill { height: 100%; background: var(--lime); transition: width 150ms; }
+  .timeline { max-height: 260px; overflow-y: auto; font-family: Consolas, monospace; font-size: 12px; }
+  .timeline-row { display: grid; grid-template-columns: 70px 1fr 90px 50px;
+    padding: 6px 4px; border-bottom: 1px solid var(--border); gap: 8px; }
+  .timeline-row .intent { color: var(--cyan); }
+  .timeline-row .mode { color: var(--lime); }
+  .timeline-row .conf { color: var(--text-dim); text-align: right; }
+  .full { grid-column: 1 / -1; }
+  table.lib { width: 100%; border-collapse: collapse; font-size: 12px; }
+  table.lib th { text-align: left; color: var(--text-dim); text-transform: uppercase;
+    font-size: 10px; letter-spacing: 1px; padding: 6px 8px; border-bottom: 1px solid var(--border); }
+  table.lib td { padding: 8px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  table.lib td.intent-name { color: var(--cyan); font-family: Consolas, monospace; white-space: nowrap; }
+  table.lib td.mode-tag { font-family: Consolas, monospace; color: var(--lime); font-size: 11px; }
+  .suggestion-banner { background: var(--surface-el); border: 1px solid var(--lime);
+    border-radius: 8px; padding: 12px 16px; margin-bottom: 12px; font-size: 13px; display: none; }
+  .suggestion-banner b { color: var(--lime); }
+  footer { margin-top: 20px; display: flex; gap: 18px; font-family: Consolas, monospace;
+    font-size: 11px; color: var(--text-dim); border-top: 1px solid var(--border); padding-top: 12px; flex-wrap: wrap; }
+  footer b { color: var(--lime); }
+</style>
+</head>
+<body>
+<header>
+  <h1>SIGNOS <span>ADAPTIVE INPUT FOR WINDOWS — MISSION CONTROL</span></h1>
+  <div class="status-pill">
+    <div class="pill">LOCAL</div>
+    <div class="pill" id="conn-pill">●&nbsp;LIVE</div>
+  </div>
+</header>
+
+<div class="grid3">
+  <div class="card">
+    <h2>Live Camera</h2>
+    <img id="cam-feed" src="http://localhost:8421/frame.mjpg"
+         onerror="this.style.display='none'; document.getElementById('cam-offline').style.display='block';">
+    <div class="cam-offline" id="cam-offline" style="display:none;">
+      Camera stream offline — start run_perception.py with --no-window (default stream port 8421).
+    </div>
+  </div>
+  <div class="card">
+    <h2>Current Mode</h2>
+    <div class="mode-badge" id="mode">DESKTOP</div>
+    <div style="margin-top:14px;">
+      <div class="ctx-row"><span class="k">App</span><span class="v" id="app">—</span></div>
+      <div class="ctx-row"><span class="k">Title</span><span class="v" id="title">—</span></div>
+    </div>
+  </div>
+  <div class="card">
+    <h2>Last Recognized Intent</h2>
+    <div class="last-intent" id="last-intent">—</div>
+    <div style="color:var(--text-dim); font-size:12px;">confidence</div>
+    <div class="confidence-bar"><div class="confidence-fill" id="conf-fill" style="width:0%"></div></div>
+  </div>
+</div>
+
+<div class="card full" style="margin-top:16px;">
+  <h2>Event Timeline (differentiator proof — same gesture, different action per mode)</h2>
+  <div class="timeline" id="timeline"></div>
+</div>
+
+<div class="card full" style="margin-top:16px;">
+  <h2>Routine &amp; Memory — local, OBSERVE + SUGGEST only (no auto-switching)</h2>
+  <div class="suggestion-banner" id="suggestion-banner"></div>
+  <div style="font-size:12px; color:var(--text-dim);" id="routine-stats">Gathering observations…</div>
+</div>
+
+<div class="card full" style="margin-top:16px;">
+  <h2>Gesture Library (self-documenting — read live from config/mapping.yaml)</h2>
+  <table class="lib" id="gesture-table"><tbody></tbody></table>
+</div>
+
+<footer>
+  <span>CAMERA: <b>LOCAL</b></span>
+  <span>RAW VIDEO STORAGE: <b>OFF</b></span>
+  <span>NETWORK AI: <b>OFF / LOCAL ONLY</b></span>
+  <span>MEMORY LEARNING: <b>OBSERVE + SUGGEST</b></span>
+</footer>
+
+<script>
+async function pollState() {
+  try {
+    const res = await fetch('/api/state');
+    const s = await res.json();
+    document.getElementById('mode').textContent = s.mode;
+    document.getElementById('app').textContent = s.app || '—';
+    document.getElementById('title').textContent = s.title || '—';
+    document.getElementById('last-intent').textContent = s.last_intent;
+    document.getElementById('conf-fill').style.width = Math.round(s.last_confidence * 100) + '%';
+    document.getElementById('conn-pill').style.color = 'var(--lime)';
+    const tl = document.getElementById('timeline');
+    tl.innerHTML = s.history.slice().reverse().map(e => {
+      const t = new Date(e.ts).toLocaleTimeString();
+      return `<div class="timeline-row"><span>${t}</span><span class="intent">${e.intent}</span>
+        <span class="mode">${e.mode}</span><span class="conf">${(e.confidence*100).toFixed(0)}%</span></div>`;
+    }).join('');
+  } catch (e) {
+    document.getElementById('conn-pill').textContent = '●\u00A0OFFLINE';
+    document.getElementById('conn-pill').style.color = 'var(--red)';
+  }
+}
+
+async function pollRoutine() {
+  try {
+    const res = await fetch('/api/routine');
+    const r = await res.json();
+    const banner = document.getElementById('suggestion-banner');
+    if (r.suggestion) {
+      banner.style.display = 'block';
+      banner.innerHTML = `Pattern detected: <b>${r.suggestion.suggested_mode}</b> mode is typical
+        around this time (${Math.round(r.suggestion.confidence*100)}% of ${r.suggestion.observations}
+        observations). Not auto-applied — display only.`;
+    } else {
+      banner.style.display = 'none';
+    }
+    document.getElementById('routine-stats').textContent =
+      `${r.total_observations} total logged actions · ${r.daily.length} day(s) of history`;
+  } catch (e) {}
+}
+
+async function loadGestures() {
+  try {
+    const res = await fetch('/api/gestures');
+    const g = await res.json();
+    const tbody = document.querySelector('#gesture-table tbody');
+    tbody.innerHTML = '<tr><th>Gesture</th><th>How to do it</th><th>Action by mode</th></tr>' +
+      Object.entries(g.descriptions).map(([name, how]) => {
+        const modes = Object.entries(g.mapping[name] || {})
+          .filter(([, action]) => action)
+          .map(([mode, action]) => `${mode}: ${action}`).join(' · ') || '—';
+        return `<tr><td class="intent-name">${name}</td><td>${how}</td><td class="mode-tag">${modes}</td></tr>`;
+      }).join('');
+  } catch (e) {}
+}
+
+setInterval(pollState, 400);
+setInterval(pollRoutine, 3000);
+pollState(); pollRoutine(); loadGestures();
+</script>
+</body>
+</html>

@@ -27,13 +27,39 @@ from context_action.mapping import MappingTable
 from context_action.mode_resolver import resolve_mode
 from context_action.window_detector import get_foreground_window
 
+from context_action.memory_store import MemoryStore
+
 POLL_INTERVAL_SECONDS = 0.1
+
+_SCROLL_FLIP = {"scroll_down": "scroll_up", "scroll_up": "scroll_down",
+                "volume_down": "volume_up", "volume_up": "volume_down"}
+_SCROLL_AXIS = {"SCROLL_V": "y", "SCROLL_H": "x"}
+_DIRECTION_DEADZONE = 0.004   # camera-normalized units, ignore sub-pixel jitter
+_STALE_S = 0.5                # gap this large = new scroll stream, don't trust the old anchor
+
+
+def _resolve_scroll_action(intent, base_action, last_ptr, now):
+    axis = _SCROLL_AXIS.get(intent.intent)
+    if not axis or base_action not in _SCROLL_FLIP or not intent.pointer:
+        return base_action
+    cur = (intent.pointer["x"], intent.pointer["y"])
+    prev = last_ptr.get(intent.intent)
+    last_ptr[intent.intent] = (*cur, now)
+    if prev is None or now - prev[2] > _STALE_S:
+        return base_action
+    delta = (cur[0] - prev[0]) if axis == "x" else (cur[1] - prev[1])
+    if abs(delta) < _DIRECTION_DEADZONE:
+        return base_action
+    wants_down = delta > 0  # hand moving down/right in mirrored camera space — VERIFY live, see note below
+    return base_action if wants_down == base_action.endswith("_down") else _SCROLL_FLIP[base_action]
 
 
 def main() -> None:
     reader = IntentBusReader()
     mapping = MappingTable()
     broker = ActionBroker()
+    last_ptr: dict = {}
+    store = MemoryStore()
 
     print("Track B main loop running. Ctrl+C to stop.")
     print(f"Reading intents from: {reader.bus_path}")
@@ -47,17 +73,18 @@ def main() -> None:
                 fg = get_foreground_window()
                 mode = resolve_mode(fg)
 
-                # Every actionable intent gets a chance to confirm a
-                # pending R3 action first (Batch 3: risk gating).
                 broker.check_confirmation(intent.intent)
 
                 action = mapping.resolve(intent.intent, mode)
+                if action:
+                    action = _resolve_scroll_action(intent, action, last_ptr, time.time())
                 app = fg.process_name if fg else "?"
                 if action is None:
                     print(f"{intent.intent:<18} mode={mode:<12} app={app:<18} -> no mapping, ignored")
                     continue
                 print(f"{intent.intent:<18} mode={mode:<12} app={app:<18} -> {action}")
-                broker.execute(action, intent.intent)
+                if broker.execute(action, intent.intent):
+                    store.log_event(mode, app, intent.intent, action)
             time.sleep(POLL_INTERVAL_SECONDS)
     except KeyboardInterrupt:
         print("\nStopped.")

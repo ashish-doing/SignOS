@@ -10,3 +10,5 @@ state/*.offset
 training/video/
 results/*.csv
 results/bench_bus.jsonl
+
+state/signos_memory.db

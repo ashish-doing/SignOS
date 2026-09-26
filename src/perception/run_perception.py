@@ -13,6 +13,51 @@ from src.perception.gestures import Event, GestureConfig, GestureEngine
 from src.perception.intent_bus import DEFAULT_BUS_PATH, IntentBusWriter
 from src.perception.landmarks import HandTracker
 
+import threading
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
+_frame_lock = threading.Lock()
+_latest_jpeg: bytes | None = None
+
+
+def _publish_frame(frame) -> None:
+    global _latest_jpeg
+    ok, buf = cv2.imencode(".jpg", frame, [cv2.IMWRITE_JPEG_QUALITY, 70])
+    if ok:
+        with _frame_lock:
+            _latest_jpeg = buf.tobytes()
+
+
+class _StreamHandler(BaseHTTPRequestHandler):
+    def log_message(self, *a):
+        pass
+
+    def do_GET(self):
+        if self.path != "/frame.mjpg":
+            self.send_response(404)
+            self.end_headers()
+            return
+        self.send_response(200)
+        self.send_header("Age", "0")
+        self.send_header("Cache-Control", "no-cache, private")
+        self.send_header("Content-Type", "multipart/x-mixed-replace; boundary=FRAME")
+        self.end_headers()
+        try:
+            while True:
+                with _frame_lock:
+                    jpg = _latest_jpeg
+                if jpg is not None:
+                    self.wfile.write(b"--FRAME\r\nContent-Type: image/jpeg\r\nContent-Length: "
+                                      + str(len(jpg)).encode() + b"\r\n\r\n" + jpg + b"\r\n")
+                time.sleep(0.05)
+        except (BrokenPipeError, ConnectionResetError):
+            pass
+
+
+def _start_stream_server(port: int) -> None:
+    server = ThreadingHTTPServer(("127.0.0.1", port), _StreamHandler)
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    print(f"camera stream -> http://localhost:{port}/frame.mjpg")
 
 class IdleThrottle:
     """NONE/TRANSITION are rate-limited; any real intent resets it so the next idle passes at once."""
@@ -43,7 +88,7 @@ def send(bus, thr, ev: Event, now: float, fps: float, kind="gesture") -> bool:
     return True
 
 
-def draw(frame, hands, engine, fps, last_ptr, last_intent):
+def render_overlay(frame, hands, engine, fps, last_ptr, last_intent):
     h, w = frame.shape[:2]
     for ho in hands:
         for x, y, _ in ho.lm:
@@ -58,7 +103,7 @@ def draw(frame, hands, engine, fps, last_ptr, last_intent):
     cv2.rectangle(frame, (0, 0), (w, 20 + 18 * len(lines)), (0, 0, 0), -1)
     for i, t in enumerate(lines):
         cv2.putText(frame, t, (8, 20 + 18 * i), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1, cv2.LINE_AA)
-    cv2.imshow("SignOS Track A (q to quit)", frame)
+    return frame
 
 
 def main(argv=None) -> int:
@@ -69,6 +114,8 @@ def main(argv=None) -> int:
     ap.add_argument("--idle-hz", type=float, default=5.0)
     ap.add_argument("--bus", default=str(DEFAULT_BUS_PATH))
     ap.add_argument("--no-window", action="store_true")
+    ap.add_argument("--no-stream", action="store_true")
+    ap.add_argument("--stream-port", type=int, default=8421)
     ap.add_argument("--task-model", default=None)
     ap.add_argument("--isl", default=None, help="path to models/isl_gru.onnx")
     ap.add_argument("--isl-hz", type=float, default=10.0)
@@ -90,6 +137,8 @@ def main(argv=None) -> int:
     try:
         with Camera(args.camera) as cam, IntentBusWriter(args.bus) as bus:
             print(f"camera {args.camera} open | bus -> {bus.path}")
+            if not args.no_stream:
+                _start_stream_server(args.stream_port)
             while True:
                 frame = cv2.flip(cam.read(), 1)
                 t0 = time.perf_counter()
@@ -123,8 +172,11 @@ def main(argv=None) -> int:
                                         last_intent = intent
                 t2 = time.perf_counter()
                 rows.append((t0 - t_start, len(hands), emitted, (t1 - t0) * 1000, (t2 - t1) * 1000, (t2 - t0) * 1000))
+                render_overlay(frame, hands, engine, fps, last_ptr if t0 - last_ptr_t < 0.5 else None, last_intent)
+                if not args.no_stream:
+                    _publish_frame(frame)
                 if not args.no_window:
-                    draw(frame, hands, engine, fps, last_ptr if t0 - last_ptr_t < 0.5 else None, last_intent)
+                    cv2.imshow("SignOS Track A (q to quit)", frame)
                     if cv2.waitKey(1) & 0xFF in (27, ord("q")):
                         break
                 if args.seconds and t2 - t_start >= args.seconds:
