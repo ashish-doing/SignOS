@@ -14,8 +14,6 @@ from __future__ import annotations
 
 import pyautogui
 
-# Moving the mouse to a screen corner aborts pyautogui mid-action — a
-# manual kill switch during development. Keep this on.
 pyautogui.FAILSAFE = True
 
 
@@ -25,6 +23,17 @@ def _keys(*keys: str) -> None:
 
 def _key(key: str) -> None:
     pyautogui.press(key)
+
+
+def _type(text: str) -> None:
+    pyautogui.typewrite(text, interval=0.02)
+
+
+def _make_typer(ch: str):
+    """Factory, not an inline lambda in the loop below — avoids the
+    classic late-binding closure bug where every generated lambda would
+    otherwise end up referencing the same final loop variable."""
+    return lambda: _type(ch)
 
 
 ACTIONS = {
@@ -43,8 +52,16 @@ ACTIONS = {
     "scroll_up": lambda: pyautogui.scroll(300),
     "volume_down": lambda: _key("volumedown"),
     "volume_up": lambda: _key("volumeup"),
-    # R3 demo action (see action_broker.RISK_LEVELS + mapping.yaml) —
-    # closes the active window without checking for unsaved work, so
-    # it's gated behind a second, distinct-gesture confirmation.
     "close_active_window": lambda: _keys("alt", "f4"),
+
+    # --- Search & Launch / AirType demo path ---
+    "open_windows_search": lambda: _keys("win", "s"),
+    "switch_window": lambda: _keys("alt", "tab"),
+    "type_space": lambda: _key("space"),
+    "type_backspace": lambda: _key("backspace"),
+    "type_enter": lambda: _key("enter"),
 }
+
+for _ch in "abcdefghijklmnopqrstuvwxyz":
+    ACTIONS[f"type_char_{_ch}"] = _make_typer(_ch)
+del _ch

@@ -76,6 +76,44 @@ def run(interval_seconds: float, only: Optional[str], count: Optional[int]) -> N
     except KeyboardInterrupt:
         print("\nStopped.")
 
+def _spell_sequence(word: str, search_first: bool) -> list:
+    """Builds the ISL_<LETTER> intent sequence for --spell. Only a-z are
+    supported (fingerspelling placeholder — see mapping.yaml note)."""
+    sequence = []
+    if search_first:
+        sequence.append("ISL_SEARCH")
+    for ch in word:
+        if ch == " ":
+            sequence.append("ISL_SPACE")
+        elif ch.isalpha():
+            sequence.append(f"ISL_{ch.upper()}")
+        else:
+            raise ValueError(f"--spell only supports letters and spaces, got {ch!r} in {word!r}")
+    sequence.append("ISL_ENTER")
+    return sequence
+
+
+def run_spell(word: str, search_first: bool, interval_seconds: float, lead_in_seconds: float) -> None:
+    """Demo convenience: spells `word` letter-by-letter as ISL_<LETTER>
+    intents, ending with ISL_ENTER — the 'type with signs, launch an app'
+    demo path. Give yourself `lead_in_seconds` to switch focus (e.g. to
+    let Windows Search actually open) before the first letter fires."""
+    sequence = _spell_sequence(word, search_first)
+    STATE_DIR.mkdir(parents=True, exist_ok=True)
+    print(f"Will spell {word!r} as: {' -> '.join(sequence)}")
+    if lead_in_seconds > 0:
+        print(f"Starting in {lead_in_seconds:.0f}s — switch focus now if needed...")
+        time.sleep(lead_in_seconds)
+    try:
+        with open(INTENT_BUS_PATH, "a", encoding="utf-8") as f:
+            for name in sequence:
+                record = make_intent(name)
+                f.write(json.dumps(record) + "\n")
+                f.flush()
+                print(f"  wrote {record['intent']}")
+                time.sleep(interval_seconds)
+    except KeyboardInterrupt:
+        print("\nStopped.")
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)

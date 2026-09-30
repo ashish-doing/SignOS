@@ -63,3 +63,22 @@ def get_foreground_window() -> Optional[ForegroundWindow]:
         window_title=window_title,
         is_fullscreen=_is_fullscreen(hwnd),
     )
+
+def get_focused_control_type() -> Optional[str]:
+    """Returns the UI Automation control type of whatever control
+    currently has keyboard focus, anywhere on the desktop — e.g. 'Edit',
+    'Document', 'ComboBox' for text-entry controls. Returns None on any
+    failure (no focused element, UIA error, anything) rather than
+    raising. This is the basis for TEXT mode detection: a focused
+    editable control means the user is somewhere they can type,
+    regardless of which app/process owns it (a Windows Search box, a
+    browser address bar Notepad, etc.)."""
+    try:
+        from pywinauto.uia_defines import IUIA
+        from pywinauto.uia_element_info import UIAElementInfo
+
+        raw = IUIA().iuia.GetFocusedElement()
+        info = UIAElementInfo(raw)
+        return info.control_type
+    except Exception:
+        return None

@@ -51,3 +51,64 @@ DOUBLE_PINCH:
   PRESENTATION: null
   MEDIA: null
   TEXT: null
+
+
+# --- Search & Launch / AirType demo path (added under deadline pressure,
+# ahead of original Batch 4 — see chat for rationale) ---
+#
+# PALM_HOLD is otherwise unmapped (blueprint reserves it for "open
+# command palette", not yet built) — repurposed here as a task-switch
+# gesture for the navigation half of the demo. Same honesty note as
+# DOUBLE_PINCH above: not a claimed final UX pairing.
+PALM_HOLD:
+  DESKTOP: switch_window
+  BROWSER: null
+  PRESENTATION: null
+  MEDIA: null
+  TEXT: null
+
+ISL_SEARCH:
+  DESKTOP: open_windows_search
+  BROWSER: null
+  PRESENTATION: null
+  MEDIA: null
+  TEXT: null
+
+ISL_SPACE:
+  DESKTOP: null
+  BROWSER: null
+  PRESENTATION: null
+  MEDIA: null
+  TEXT: type_space
+
+ISL_BACKSPACE:
+  DESKTOP: null
+  BROWSER: null
+  PRESENTATION: null
+  MEDIA: null
+  TEXT: type_backspace
+
+ISL_ENTER:
+  DESKTOP: null
+  BROWSER: null
+  PRESENTATION: null
+  MEDIA: null
+  TEXT: type_enter
+
+# Fingerspelling alphabet — placeholder standing in for Track A's real
+# ISL letter classifier, which doesn't exist yet.
+ISL_A:
+  DESKTOP: null
+  BROWSER: null
+  PRESENTATION: null
+  MEDIA: null
+  TEXT: type_char_a
+
+ISL_B:
+  DESKTOP: null
+  BROWSER: null
+  PRESENTATION: null
+  MEDIA: null
+  TEXT: type_char_b
+
+# ... (same pattern for C through Z — full file has all 26)

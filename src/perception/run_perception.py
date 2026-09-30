@@ -50,7 +50,7 @@ class _StreamHandler(BaseHTTPRequestHandler):
                     self.wfile.write(b"--FRAME\r\nContent-Type: image/jpeg\r\nContent-Length: "
                                       + str(len(jpg)).encode() + b"\r\n\r\n" + jpg + b"\r\n")
                 time.sleep(0.05)
-        except (BrokenPipeError, ConnectionResetError):
+        except OSError:
             pass
 
 

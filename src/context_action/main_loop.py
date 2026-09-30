@@ -46,11 +46,11 @@ def _resolve_scroll_action(intent, base_action, last_ptr, now):
     prev = last_ptr.get(intent.intent)
     last_ptr[intent.intent] = (*cur, now)
     if prev is None or now - prev[2] > _STALE_S:
-        return base_action
+        return None   # first frame of a new scroll stream — no motion measured yet, don't fire
     delta = (cur[0] - prev[0]) if axis == "x" else (cur[1] - prev[1])
     if abs(delta) < _DIRECTION_DEADZONE:
-        return base_action
-    wants_down = delta > 0  # hand moving down/right in mirrored camera space — VERIFY live, see note below
+        return None   # hand essentially static this frame — don't scroll on nothing
+    wants_down = delta > 0
     return base_action if wants_down == base_action.endswith("_down") else _SCROLL_FLIP[base_action]
 
 
@@ -76,8 +76,10 @@ def main() -> None:
                 broker.check_confirmation(intent.intent)
 
                 action = mapping.resolve(intent.intent, mode)
-                if action:
+                if action and intent.intent in _SCROLL_AXIS:
                     action = _resolve_scroll_action(intent, action, last_ptr, time.time())
+                    if action is None:
+                        continue  # no net motion this frame — skip silently, no log spam
                 app = fg.process_name if fg else "?"
                 if action is None:
                     print(f"{intent.intent:<18} mode={mode:<12} app={app:<18} -> no mapping, ignored")
