@@ -9,6 +9,7 @@ a real demo — it will collide with real Track A output on the same file.
 
     python -m context_action.synthetic_intent_gen --enable
     python -m context_action.synthetic_intent_gen --enable --only SWIPE_RIGHT --interval 1 --count 5
+    python -m context_action.synthetic_intent_gen --enable --spell NOTEPAD --search-first --lead-in 4
 """
 
 from __future__ import annotations
@@ -49,7 +50,7 @@ def make_intent(name: Optional[str] = None) -> dict:
         "schema": "signos.intent.v1",
         "ts": ts,
         "id": str(uuid.uuid4()),
-        "kind": "gesture",
+        "kind": "isl" if intent.startswith("ISL_") else "gesture",
         "intent": intent,
         "confidence": round(random.uniform(0.75, 0.99), 2),
         "pointer": {"x": round(random.random(), 3), "y": round(random.random(), 3)} if has_pointer else None,
@@ -57,6 +58,23 @@ def make_intent(name: Optional[str] = None) -> dict:
         "raw_duration_ms": random.randint(80, 400),
         "source_fps": 30.0,
     }
+
+
+def _spell_sequence(word: str, search_first: bool) -> list:
+    """Builds the ISL_<LETTER> intent sequence for --spell. Only a-z are
+    supported (fingerspelling placeholder — see mapping.yaml note)."""
+    sequence = []
+    if search_first:
+        sequence.append("ISL_SEARCH")
+    for ch in word:
+        if ch == " ":
+            sequence.append("ISL_SPACE")
+        elif ch.isalpha():
+            sequence.append(f"ISL_{ch.upper()}")
+        else:
+            raise ValueError(f"--spell only supports letters and spaces, got {ch!r} in {word!r}")
+    sequence.append("ISL_ENTER")
+    return sequence
 
 
 def run(interval_seconds: float, only: Optional[str], count: Optional[int]) -> None:
@@ -75,22 +93,6 @@ def run(interval_seconds: float, only: Optional[str], count: Optional[int]) -> N
                     time.sleep(interval_seconds)
     except KeyboardInterrupt:
         print("\nStopped.")
-
-def _spell_sequence(word: str, search_first: bool) -> list:
-    """Builds the ISL_<LETTER> intent sequence for --spell. Only a-z are
-    supported (fingerspelling placeholder — see mapping.yaml note)."""
-    sequence = []
-    if search_first:
-        sequence.append("ISL_SEARCH")
-    for ch in word:
-        if ch == " ":
-            sequence.append("ISL_SPACE")
-        elif ch.isalpha():
-            sequence.append(f"ISL_{ch.upper()}")
-        else:
-            raise ValueError(f"--spell only supports letters and spaces, got {ch!r} in {word!r}")
-    sequence.append("ISL_ENTER")
-    return sequence
 
 
 def run_spell(word: str, search_first: bool, interval_seconds: float, lead_in_seconds: float) -> None:
@@ -115,6 +117,7 @@ def run_spell(word: str, search_first: bool, interval_seconds: float, lead_in_se
     except KeyboardInterrupt:
         print("\nStopped.")
 
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--enable", action="store_true", required=True,
@@ -122,8 +125,19 @@ def main() -> None:
     parser.add_argument("--interval", type=float, default=2.0, help="Seconds between synthetic intents.")
     parser.add_argument("--only", type=str, default=None, help="Always emit this one intent name instead of random.")
     parser.add_argument("--count", type=int, default=None, help="Stop after N intents (default: until Ctrl+C).")
+    parser.add_argument("--spell", type=str, default=None,
+                         help="Demo mode: spell this word as ISL_<LETTER> intents ending in ISL_ENTER "
+                              "(letters and spaces only). Ignores --only/--count.")
+    parser.add_argument("--search-first", action="store_true",
+                         help="With --spell: fire ISL_SEARCH before the letters, to open Windows Search first.")
+    parser.add_argument("--lead-in", type=float, default=4.0,
+                         help="With --spell: seconds to wait before the first letter, so you can switch focus.")
     args = parser.parse_args()
-    run(args.interval, args.only, args.count)
+
+    if args.spell:
+        run_spell(args.spell, args.search_first, args.interval, args.lead_in)
+    else:
+        run(args.interval, args.only, args.count)
 
 
 if __name__ == "__main__":
