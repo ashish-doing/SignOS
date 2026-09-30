@@ -1,0 +1,214 @@
+/* ============================================================
+   SIGNOS BRAND KIT
+   Single source of truth for colors, type, spacing and the core
+   reusable components (logo, wordmark, pill, card, chips) used
+   across every SignOS page. Link this file, don't redefine tokens
+   locally — if the brand changes, it changes here once.
+
+   Load fonts once per page, in <head>, before this stylesheet:
+   <link rel="preconnect" href="https://fonts.googleapis.com">
+   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+   ============================================================ */
+
+:root {
+  /* Neutrals — interpreted from Qualcomm's named Snapdragon rebrand
+     colors (Midnight, Gunmetal, Nickel); exact hex isn't public. */
+  --midnight:      #05070C;
+  --midnight-2:    #080B12;
+  --gunmetal:      #12161F;
+  --gunmetal-2:    #181D29;
+  --gunmetal-3:    #1F2530;
+  --nickel:        #A9B0BC;
+  --nickel-dim:    #626B7A;
+  --hairline:      #262C3A;
+  --hairline-soft: #1A2029;
+
+  /* Brand accents */
+  --sd-red:        #E93A30;
+  --sd-red-deep:   #A11F1F;
+  --sd-red-glow:   rgba(233, 58, 48, 0.35);
+  --gold:          #D8B25C;
+  --gold-dim:      #8A733B;
+
+  /* Semantic / status */
+  --ok:            #3FCF8E;
+  --warn:          #E3A83B;
+  --danger:        #E9483B;
+  --info:          #4E8FE3;
+
+  /* Text */
+  --text:          #F3F5F8;
+  --text-dim:      #9AA2B1;
+
+  /* Geometry */
+  --radius:        14px;
+  --radius-sm:     9px;
+
+  /* Type */
+  --mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
+  --sans: "Inter", -apple-system, "Segoe UI", system-ui, sans-serif;
+}
+
+/* ---------------- base ---------------- */
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  background: var(--midnight);
+  color: var(--text);
+  font-family: var(--sans);
+}
+
+body {
+  min-height: 100vh;
+  padding: 28px clamp(18px, 3vw, 40px) 40px;
+  background:
+    radial-gradient(680px 340px at 14% -8%, var(--sd-red-glow), transparent 60%),
+    radial-gradient(900px 500px at 100% 0%, rgba(78,143,227,0.10), transparent 55%),
+    var(--midnight);
+  background-attachment: fixed;
+}
+
+::selection { background: var(--sd-red); color: #fff; }
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--gunmetal-3); border-radius: 8px; }
+::-webkit-scrollbar-thumb:hover { background: var(--nickel-dim); }
+
+/* ---------------- logo + wordmark ---------------- */
+.spark { width: 40px; height: 40px; flex: none; filter: drop-shadow(0 0 14px var(--sd-red-glow)); }
+
+.brand { display: flex; align-items: center; gap: 14px; }
+
+.brand h1 {
+  font-size: 21px;
+  margin: 0;
+  letter-spacing: 0.5px;
+  font-weight: 800;
+  color: var(--text);
+  line-height: 1.1;
+}
+.brand h1 .tm { color: var(--sd-red); }
+
+.brand .subtitle {
+  display: block;
+  margin-top: 4px;
+  color: var(--nickel-dim);
+  font-weight: 500;
+  font-size: 11.5px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  font-family: var(--mono);
+}
+
+/* ---------------- pills (header/status) ---------------- */
+.status-pill { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: var(--gunmetal-2);
+  border: 1px solid var(--hairline);
+  border-radius: 999px;
+  padding: 6px 13px;
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.6px;
+  color: var(--nickel);
+}
+.pill.chip-gold { color: var(--gold); border-color: rgba(216,178,92,0.35); }
+.pill .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--ok); flex: none; }
+.pill.live .dot { background: var(--ok); box-shadow: 0 0 8px var(--ok); animation: sd-pulse 1.8s ease-in-out infinite; }
+.pill.offline .dot { background: var(--danger); box-shadow: 0 0 8px var(--danger); animation: none; }
+@keyframes sd-pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.35; } }
+
+/* ---------------- cards ---------------- */
+.card {
+  position: relative;
+  background: linear-gradient(180deg, var(--gunmetal-2), var(--gunmetal));
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius);
+  padding: 18px 18px 20px;
+  overflow: hidden;
+}
+.card::before {
+  content: "";
+  position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  background: linear-gradient(90deg, var(--sd-red), transparent 65%);
+  opacity: 0.9;
+}
+.card h2 {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 1.6px;
+  color: var(--nickel-dim);
+  margin: 0 0 14px 0;
+  font-weight: 700;
+  font-family: var(--mono);
+}
+.card h2 svg { width: 14px; height: 14px; color: var(--sd-red); flex: none; }
+
+.full { grid-column: 1 / -1; margin-top: 16px; }
+
+.grid3 { display: grid; grid-template-columns: 1.3fr 1fr 1fr; gap: 16px; }
+@media (max-width: 920px) { .grid3 { grid-template-columns: 1fr; } }
+
+/* ---------------- mode → color mapping ----------------
+   Apply as a class alongside any element that displays a mode:
+   DESKTOP / BROWSER / PRESENTATION / MEDIA / TEXT.
+   Used for: mode badges, timeline chips, action chips. */
+.mode-DESKTOP      { color: var(--nickel); }
+.mode-BROWSER      { color: var(--info); }
+.mode-PRESENTATION { color: var(--sd-red); }
+.mode-MEDIA        { color: var(--ok); }
+.mode-TEXT         { color: var(--gold); }
+
+.mode-chip {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  border: 1px solid currentColor;
+  background: color-mix(in srgb, currentColor 12%, transparent);
+  font-family: var(--mono);
+}
+
+/* ---------------- generic chip (footer / gesture actions) ---------------- */
+.action-chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-family: var(--mono); font-size: 11px;
+  background: var(--gunmetal-3);
+  border: 1px solid var(--hairline);
+  border-radius: 999px;
+  padding: 2px 9px;
+  margin: 2px 4px 2px 0;
+  color: var(--text);
+}
+.action-chip .m { font-weight: 700; }
+.action-chip .a { color: var(--nickel-dim); }
+
+.foot-chip {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-family: var(--mono); font-size: 11px; letter-spacing: 0.4px;
+  color: var(--nickel-dim);
+  background: var(--gunmetal-2);
+  border: 1px solid var(--hairline);
+  border-radius: 999px;
+  padding: 6px 12px;
+}
+.foot-chip b { color: var(--ok); font-weight: 700; }
+.foot-chip.gold b { color: var(--gold); }
+
+/* ---------------- confidence / progress bar ---------------- */
+.confidence-bar {
+  height: 7px; background: var(--gunmetal-3); border-radius: 4px;
+  overflow: hidden; border: 1px solid var(--hairline-soft);
+}
+.confidence-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--sd-red-deep), var(--sd-red), var(--gold));
+  transition: width 180ms ease;
+}
